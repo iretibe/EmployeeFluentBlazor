@@ -1,0 +1,104 @@
+﻿@page "/department"
+
+@inject IDepartmentService _departmentService
+@inject IDialogService _dialogService
+@inject IToastService _toastService
+
+@rendermode InteractiveServer
+
+<PageTitle>Department</PageTitle>
+
+@* <ul>
+    @if (_departments != null)
+    {
+        @foreach (var item in _departments)
+        {
+            <li>@item.Name</li>
+        }
+    }
+    else
+    {
+        <li>No departments found.</li>
+    }
+</ul> *@
+
+
+@if (_departmentsQueryable is null)
+{
+    <FluentProgressRing Style="width:30px; height:30px;" />
+}
+else
+{
+    <FluentGrid Justify="JustifyContent.SpaceBetween" Style="margin-top:20px; margin-bottom:20px;">
+        <FluentGridItem xs="12" Style="border: 5px solid #ddd">
+            <FluentStack>
+                <FluentLabel Typo="Typography.PaneHeader">
+                    Department
+                </FluentLabel>
+                <FluentSpacer />
+                <FluentAnchor Href="/editdepartment" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size24.Add().WithColor(Color.Lightweight))"></FluentAnchor>
+            </FluentStack>
+
+            <FluentDataGrid Items="@_departmentsQueryable">
+                <PropertyColumn Title="Id" Property="@(item => item.Id)" Sortable="true" />
+                <PropertyColumn Title="Department Name" Property="@(item => item.Name)" Sortable="true" />
+                <PropertyColumn Title="Added On" Property="@(item => item.CreatedOn)" Sortable="true" />
+                <TemplateColumn Title="Actions" Align="@Align.End">
+                    <FluentAnchor 
+                        Appearance="Appearance.Outline" IconStart="@(new Icons.Regular.Size24.Edit().WithColor(Color.Accent))" Href="@($"/editdepartment/{context.Id}")"></FluentAnchor>
+                    <FluentButton Appearance="Appearance.Outline" IconStart="@(new Icons.Regular.Size24.Delete().WithColor(Color.Error))" OnClick="() => ShowConfirmAsync(context.Id)"></FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </FluentGridItem>
+    </FluentGrid>
+}
+
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; } = Guid.Empty;
+
+    private IQueryable<Models.Department> _departmentsQueryable;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDepartmentAsync();
+    }
+
+    private async Task ShowConfirmAsync(Guid Id)
+    {
+        var dialog = await _dialogService.ShowConfirmationAsync("Do you really want to delete this data?", "Yes", "No", "Department");
+
+        var result = await dialog.Result;
+
+        if (!result.Cancelled)
+        {
+            if (Id != Guid.Empty || Id != Guid.Parse("00000000-0000-0000-0000-000000000000"))
+            {
+                await _departmentService.DeleteDepartmentAsync(Id);
+                await _dialogService.ShowSuccessAsync($"Department Id {Id} deleted successfully");
+                await Task.Delay(2000);
+                await LoadDepartmentAsync();
+            }
+            else
+            {
+                await _dialogService.ShowSuccessAsync($"Department Id {Id} doesn't exist!");
+                await Task.Delay(2000);
+            }            
+        }
+    }
+
+    private async Task LoadDepartmentAsync()
+    {
+        try
+        {
+            var departments = await _departmentService.GetAllDepartmentsAsync();
+
+            _departmentsQueryable = departments.AsQueryable();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception(ex.Message);
+        }
+    }
+}

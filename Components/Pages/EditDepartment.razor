@@ -1,0 +1,67 @@
+﻿@page "/editdepartment"
+@page "/editdepartment/{Id:guid}"
+
+@inject IDepartmentService _departmentService
+@inject NavigationManager _navigationManager
+@inject IDialogService _dialogService
+
+@rendermode InteractiveServer
+
+<PageTitle>@pageTitle</PageTitle>
+
+<FluentGrid Justify="@JustifyContent.Center" xs="8">
+    <FluentGridItem>
+        <FluentCard>
+            <EditForm Model="Dept">
+                <FluentTextField Appearance="FluentInputAppearance.Filled" Label="Department Name" @bind-Value="Dept.Name" Style="width:100%" />
+
+                <FluentButton Appearance="Appearance.Accent" OnClick="() => SaveData()">
+                    @pageTitle 
+                </FluentButton>
+
+                <FluentAnchor Href="/department">
+                    Cancel
+                </FluentAnchor>
+            </EditForm>
+        </FluentCard>        
+    </FluentGridItem>
+</FluentGrid>
+
+
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; } = Guid.Empty;
+
+    private string pageTitle => Id != Guid.Parse("00000000-0000-0000-0000-000000000000") ? "Edit Department" : "Add Department";
+
+    [SupplyParameterFromForm]
+    public Models.Department Dept { get; set; } = new Models.Department();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != Guid.Empty || Id != Guid.Parse("00000000-0000-0000-0000-000000000000"))
+        {
+            Dept = await _departmentService.GetDepartmentByIdAsync(Id);
+        }
+    }
+
+    private async Task SaveData()
+    {
+        if (Id == Guid.Empty || Id == Guid.Parse("00000000-0000-0000-0000-000000000000"))
+        {
+            await _departmentService.AddDepartmentAsync(Dept);
+            await _dialogService.ShowSuccessAsync($"Department {Dept.Name} added successfully");
+            await Task.Delay(2000);
+            _navigationManager.NavigateTo("/Department");
+        }
+        else
+        {
+            await _departmentService.UpdateDepartmentAsync(Dept);
+            await _dialogService.ShowSuccessAsync($"Department {Dept.Name} updated successfully");
+            await Task.Delay(2000);
+            _navigationManager.NavigateTo("/Department");
+        }
+    }
+}
